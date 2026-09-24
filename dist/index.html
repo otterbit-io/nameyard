@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://cloudflare-dns.com; base-uri 'self'; form-action 'self'; object-src 'none'">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#f4f5f2" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#111513" media="(prefers-color-scheme: dark)">
+    <meta name="author" content="otterbit.io">
+    <meta name="description" content="Business name generator: turn a word into brandable names and see which domains look free.">
+    <title>nameyard – business name generator</title>
+    <link rel="icon" href="assets/img/favicon.ico">
+    <link rel="stylesheet" href="assets/css/main.css">
+    <script type="module" src="assets/js/main.js"></script>
+</head>
+
+<body>
+    <a href="#input" class="skip-link">Skip to name search</a>
+
+    <main>
+        <section class="hero">
+            <h1 class="display">Your idea needs a perfect name.</h1>
+            <p class="lede">Type what your idea is about. nameyard turns it into names and checks which domains look free.</p>
+
+            <form id="form" class="search" autocomplete="off" novalidate>
+                <label for="input" class="sr-only">Words that describe your idea</label>
+                <input type="text" id="input" name="q" maxlength="60" class="search-input"
+                    placeholder="Try: coffee shop" aria-describedby="input-error" enterkeyhint="go">
+                <button type="submit" id="genBtn" class="btn btn-primary search-button">Generate names</button>
+            </form>
+            <p id="input-error" class="field-error" hidden>Type at least one word with two or more letters.</p>
+
+            <div class="hero-links">
+                <button type="button" class="text-button js-open-refine">Name and domain options</button>
+                <button type="button" class="text-button" id="changelogBtn">What's new in v<span class="js-version"></span></button>
+            </div>
+        </section>
+
+        <div id="sharedBanner" class="banner" hidden>
+            <p>Someone shared a shortlist with you: <strong id="sharedNames"></strong></p>
+            <div class="banner-actions">
+                <button type="button" id="importShared" class="btn btn-primary">Add to my shortlist</button>
+                <button type="button" id="dismissShared" class="btn btn-plain">Dismiss</button>
+            </div>
+        </div>
+
+        <section id="results-section" class="results" aria-labelledby="results-status" hidden>
+            <div id="toolbarSentinel" aria-hidden="true"></div>
+            <div class="toolbar" id="toolbar">
+                <p id="results-status" class="toolbar-status" role="status"></p>
+                <div class="toolbar-actions">
+                    <button type="button" class="btn btn-plain js-open-refine">Refine</button>
+                    <button type="button" id="shuffleBtn" class="btn btn-plain">Shuffle</button>
+                </div>
+            </div>
+            <p class="footnote">Domain links open Namecheap. They are affiliate links: if you register a domain there, we may earn a commission. It costs you nothing extra.</p>
+
+            <div id="results" class="grid"></div>
+            <p id="emptyState" class="empty" hidden></p>
+            <div class="more">
+                <button type="button" id="moreBtn" class="btn btn-plain" hidden>Show more names</button>
+            </div>
+        </section>
+    </main>
+
+    <button type="button" id="shortlistBtn" class="shortlist-button material" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.1 0 3.6 1.1 5.3 3 1.7-1.9 3.2-3 5.3-3 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/></svg>
+        <span>Shortlist</span>
+        <span id="shortlistCount" class="count">0</span>
+    </button>
+
+    <footer class="footer">
+        <p>NameYard | built by <a href="https://github.com/otterbit-io">Otterbit</a></p>
+        <ul>
+            <li><a href="https://github.com/otterbit-io/nameyard" target="_blank" rel="noopener">GitHub</a></li>
+        </ul>
+    </footer>
+
+    <!-- Options -->
+    <dialog id="refineSheet" class="sheet" aria-labelledby="refineTitle">
+        <div class="sheet-scrim"></div>
+        <div class="sheet-panel">
+            <div class="sheet-drag">
+                <div class="sheet-grabber" aria-hidden="true"></div>
+                <header class="sheet-head">
+                    <h2 id="refineTitle" class="sheet-title">Options</h2>
+                    <button type="button" class="btn btn-primary btn-small" data-close>Done</button>
+                </header>
+            </div>
+            <div class="sheet-body" id="options">
+                <div class="group">
+                    <label class="row">
+                        <span>Industry</span>
+                        <select id="industry" class="select"></select>
+                    </label>
+                    <label class="row">
+                        <span>Syllables</span>
+                        <select id="maxSyllables" class="select">
+                            <option value="0">Any number</option>
+                            <option value="2">Up to 2</option>
+                            <option value="3">Up to 3</option>
+                        </select>
+                    </label>
+                    <label class="row row-stacked">
+                        <span class="row-split"><span>Maximum length</span><output id="maxLengthOut" class="row-value">14 letters</output></span>
+                        <input type="range" id="maxLength" min="5" max="16" value="14" class="slider">
+                    </label>
+                </div>
+
+                <fieldset class="group-plain">
+                    <legend class="group-title">Name styles</legend>
+                    <div id="styles" class="chips"></div>
+                </fieldset>
+
+                <fieldset class="group-plain">
+                    <legend class="group-title">Domain endings <span class="muted">up to 4</span></legend>
+                    <div id="tlds" class="chips"></div>
+                </fieldset>
+
+                <div class="group">
+                    <label class="row">
+                        <span>Check which domains look free</span>
+                        <input type="checkbox" id="checkDomains" class="switch" role="switch">
+                    </label>
+                    <label class="row">
+                        <span>Hide names with no free domain</span>
+                        <input type="checkbox" id="hideTaken" class="switch" role="switch">
+                    </label>
+                    <label class="row" id="aiToggle" hidden>
+                        <span>Add AI suggestions</span>
+                        <input type="checkbox" id="useAi" class="switch" role="switch">
+                    </label>
+                </div>
+                <p class="group-note">Domains are looked up through Cloudflare's public DNS. A free-looking domain can still be reserved or premium.</p>
+                <p class="sheet-status" id="refineStatus" role="status"></p>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- Name details -->
+    <dialog id="detailsSheet" class="sheet sheet-wide" aria-labelledby="detailsTitle">
+        <div class="sheet-scrim"></div>
+        <div class="sheet-panel">
+            <div class="sheet-drag">
+                <div class="sheet-grabber" aria-hidden="true"></div>
+                <header class="sheet-head">
+                    <h2 id="detailsTitle" class="sheet-title"></h2>
+                    <div class="sheet-head-actions">
+                        <button type="button" id="detailsHeart" class="icon-button heart" aria-pressed="false">
+                            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.1 0 3.6 1.1 5.3 3 1.7-1.9 3.2-3 5.3-3 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/></svg>
+                        </button>
+                        <button type="button" class="icon-button" data-close aria-label="Close">
+                            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                        </button>
+                    </div>
+                </header>
+            </div>
+            <div class="sheet-body">
+                <h3 class="group-title">Logo ideas</h3>
+                <div id="logoGrid" class="logos"></div>
+
+                <h3 class="group-title">Domains</h3>
+                <ul id="detailsDomains" class="group domain-list"></ul>
+
+                <h3 class="group-title">Social handles</h3>
+                <ul id="detailsHandles" class="chips"></ul>
+                <p class="group-note">If a profile page says it doesn't exist, the handle is probably free.</p>
+
+                <h3 class="group-title">Trademarks</h3>
+                <div class="group">
+                    <a id="detailsTrademark" class="row row-link" target="_blank" rel="noopener">
+                        <span>Search TMview</span><span class="muted">DPMA, EUIPO and more</span>
+                    </a>
+                </div>
+                <p class="group-note">nameyard leaves out well-known brands, but that doesn't replace a real search before you register a company.</p>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- Shortlist -->
+    <dialog id="shortlistSheet" class="sheet" aria-labelledby="shortlistTitle">
+        <div class="sheet-scrim"></div>
+        <div class="sheet-panel">
+            <div class="sheet-drag">
+                <div class="sheet-grabber" aria-hidden="true"></div>
+                <header class="sheet-head">
+                    <h2 id="shortlistTitle" class="sheet-title">Shortlist</h2>
+                    <button type="button" class="btn btn-primary btn-small" data-close>Done</button>
+                </header>
+            </div>
+            <div class="sheet-body">
+                <p id="shortlistEmpty" class="empty-inline">Tap the heart on a name to keep it here. Your shortlist stays in this browser.</p>
+                <ul id="shortlistItems" class="group shortlist"></ul>
+                <div id="shortlistActions" class="sheet-actions">
+                    <button type="button" id="copyShare" class="btn btn-primary">Copy share link</button>
+                    <button type="button" id="clearShortlist" class="btn btn-plain btn-destructive">Clear shortlist</button>
+                </div>
+                <p id="copyStatus" class="sheet-status" role="status"></p>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- Changelog -->
+    <dialog id="changelogSheet" class="sheet" aria-labelledby="changelogTitle">
+        <div class="sheet-scrim"></div>
+        <div class="sheet-panel">
+            <div class="sheet-drag">
+                <div class="sheet-grabber" aria-hidden="true"></div>
+                <header class="sheet-head">
+                    <h2 id="changelogTitle" class="sheet-title">What's new in v<span class="js-version"></span></h2>
+                    <button type="button" class="btn btn-primary btn-small" data-close>Done</button>
+                </header>
+            </div>
+            <div class="sheet-body">
+                <ul class="group changelog">
+                    <li>A calm design that follows your light or dark setting</li>
+                    <li>See which domains look free, for up to four endings at once, plus domain hacks like shop.ly</li>
+                    <li>Save names to a shortlist and share it with a link</li>
+                    <li>Logo previews in six typefaces, downloadable as PNG</li>
+                    <li>Industry word lists, blends, spelling twists and filters for length, syllables and style</li>
+                    <li>Several words are now combined: "coffee shop" also gives Coffeeshop</li>
+                    <li>No duplicate names or suggestions of well-known brands</li>
+                </ul>
+                <details class="earlier">
+                    <summary>Earlier versions</summary>
+                    <p class="group-title">v0.0.1</p>
+                    <ul class="group changelog"><li>Built groundwork</li></ul>
+                </details>
+            </div>
+        </div>
+    </dialog>
+
+    <template id="tileTemplate">
+        <article class="card">
+            <div class="card-head">
+                <button type="button" class="card-name" aria-haspopup="dialog"></button>
+                <button type="button" class="icon-button heart" aria-pressed="false">
+                    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.1 0 3.6 1.1 5.3 3 1.7-1.9 3.2-3 5.3-3 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/></svg>
+                </button>
+            </div>
+            <span class="card-badge" hidden>AI suggestion</span>
+            <ul class="domain-list"></ul>
+        </article>
+    </template>
+</body>
+
+</html>
